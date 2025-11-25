@@ -19,6 +19,8 @@
   const swapBtn = document.getElementById('swapBtn');
   const resetBtn = document.getElementById('resetBtn');
   const clearHighlightsBtn = document.getElementById('clearHighlights');
+  const difficultySliderContainer = document.getElementById('botDifficultySliderContainer');
+  const difficultySlider = document.getElementById('botDifficultySlider');
 
   function cssVar(name, fallback){
     try {
@@ -461,9 +463,20 @@
   }
 
   function computeBestMoveFor(player) {
-    const depth = 9; // full search depth for 3x3
+    // default full depth
+    return computeBestMoveForDepth(player, 9);
+  }
+
+  function computeBestMoveForDepth(player, depth) {
     const res = minimax(board, queues, player, player, depth);
     return res.move || null;
+  }
+
+  function randomEmpty() {
+    const empties = [];
+    for (let r = 0; r < BOARD_SIZE; r++) for (let c = 0; c < BOARD_SIZE; c++) if (board[r][c] === null) empties.push([r,c]);
+    if (!empties.length) return null;
+    return empties[Math.floor(Math.random() * empties.length)];
   }
 
 
@@ -472,6 +485,22 @@
   // Bot mode state
   let botActive = false;
   let botSide = 'O';
+  let botDifficulty = 'normal';
+
+  // select removed; slider controls difficulty
+
+  // Slider -> difficulty mapping
+  if (difficultySlider) {
+    // initialize slider position from select/default
+    const initMap = { easy: '0', normal: '1', hard: '2' };
+    difficultySlider.value = initMap[botDifficulty] || '1';
+    difficultySlider.addEventListener('input', (e) => {
+      const v = e.target.value;
+      const map = { '0': 'easy', '1': 'normal', '2': 'hard' };
+      botDifficulty = map[v] || 'normal';
+      setStatus(`Bot difficulty set to ${botDifficulty}`);
+    });
+  }
 
   function getHintFor(player) {
     return findWinningMove(player)
@@ -484,11 +513,23 @@
 
   function performBotMove() {
     if (gameOver || !botActive) return;
-    // Use computeBestMoveFor which runs minimax over full simulated state
-    const mv = computeBestMoveFor(botSide);
+
+    let mv = null;
+    // Easy: intentionally dumb — purely random
+    if (botDifficulty === 'easy') {
+      mv = randomEmpty();
+    } else if (botDifficulty === 'normal') {
+      // Normal: prefer heuristics, otherwise shallow minimax
+      mv = getHintFor(botSide);
+      if (!mv) mv = computeBestMoveForDepth(botSide, 4);
+    } else {
+      // Hard: full minimax
+      mv = computeBestMoveForDepth(botSide, 9);
+    }
+
     if (!mv) { setStatus('Bot: no move available'); return; }
     const [r, c] = mv;
-    setStatus(`Bot (minimax) plays: cell (${r+1}, ${c+1})`);
+    setStatus(`Bot (${botDifficulty}) plays: cell (${r+1}, ${c+1})`);
     playMove(r, c);
   }
 
@@ -506,6 +547,8 @@
       hintBtn.style.backgroundColor = cssVar('--accent-o', '#4fd1c5');
       hintBtn.style.color = '#042';
       setStatus(`Bot enabled (playing as ${botSide})`);
+      // show slider if available
+      if (difficultySliderContainer) difficultySliderContainer.style.display = 'flex';
       // if it's currently bot's turn, play immediately after a short delay
       if (currentPlayer === botSide && !gameOver) setTimeout(performBotMove, 120);
     } else {
@@ -515,6 +558,7 @@
       hintBtn.style.backgroundColor = '';
       hintBtn.style.color = '';
       setStatus('Bot disabled');
+      if (difficultySliderContainer) difficultySliderContainer.style.display = 'none';
     }
   });
 

@@ -26,10 +26,20 @@
       </div>
 
       <div class="footer" style="margin-top:10px">
-        <div style="display:flex;gap:8px">
-          <button id="hintBtn" class="btn ghost">Play Bot</button>
-          <button id="swapBtn" class="btn ghost">Swap Player</button>
-          <button id="resetBtn" class="btn primary">New Game</button>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:8px">
+            <button id="hintBtn" class="btn ghost">Play Bot</button>
+            <button id="swapBtn" class="btn ghost">Swap Player</button>
+            <button id="resetBtn" class="btn primary">New Game</button>
+          </div>
+          <div id="botDifficultySliderContainer" class="difficulty-slider" style="display:none;align-items:center;margin-top:6px">
+            <input id="botDifficultySlider" type="range" min="0" max="2" step="1" value="1" aria-label="Bot difficulty slider">
+            <div class="slider-labels" aria-hidden="true">
+              <span class="label">Easy</span>
+              <span class="label">Normal</span>
+              <span class="label">Hard</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
