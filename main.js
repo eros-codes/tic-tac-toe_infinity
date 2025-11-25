@@ -156,15 +156,12 @@
       currentPlayer = player === 'X' ? 'O' : 'X';
       updateMeta();
       setStatus(`Player ${currentPlayer}'s turn`);
-      // If bot is active and it's now the bot's turn, schedule bot move
       setTimeout(() => {
         if (botActive && !gameOver && currentPlayer === botSide) {
           performBotMove();
         }
       }, 160);
     }
-
-    // If player already has MAX_PIECES, remove oldest BEFORE placing the new piece
     if (queues[player].length >= MAX_PIECES) {
       const old = queues[player].shift();
       // animate removal, then place the new piece
@@ -176,9 +173,7 @@
         queues[player].push(thisMove);
         finalizeAfterPlacement(r, c);
       });
-    } else {
-      // normal place
-      board[r][c] = player;
+    } else {      board[r][c] = player;
       const thisMove = { r, c, id: moveId++ };
       queues[player].push(thisMove);
       finalizeAfterPlacement(r, c);
@@ -302,8 +297,6 @@
     const m = findWinningMove(opp);
     return m ? m : null;
   }
-
-  // Look for a fork: a move that creates two (or more) immediate winning threats
   function findForkMove(player) {
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
@@ -326,15 +319,11 @@
     }
     return null;
   }
-
-  // Try to block opponent forks: prefer immediate win, otherwise occupy fork cell
   function findBlockingFork(player) {
     const opp = player === 'X' ? 'O' : 'X';
-    // If opponent has a fork, get one of their fork locations
     const oppFork = findForkMove(opp);
     if (!oppFork) return null;
 
-    // If we can win immediately, do that (forces opponent to respond)
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (board[r][c] !== null) continue;
@@ -344,8 +333,6 @@
         if (winNow) return [r,c];
       }
     }
-
-    // Otherwise try to play on the opponent's fork cell
     const [fr, fc] = oppFork;
     if (board[fr][fc] === null) return [fr, fc];
     return null;
@@ -355,7 +342,6 @@
     const corners = [[0,0],[0,BOARD_SIZE-1],[BOARD_SIZE-1,0],[BOARD_SIZE-1,BOARD_SIZE-1]];
     const availCorners = corners.filter(([r,c]) => board[r][c] === null);
     if (availCorners.length) return availCorners[Math.floor(Math.random()*availCorners.length)];
-    // fallback to any empty
     const empties = [];
     for (let r = 0; r < BOARD_SIZE; r++) for (let c = 0; c < BOARD_SIZE; c++) if (board[r][c]===null) empties.push([r,c]);
     if (empties.length) return empties[Math.floor(Math.random()*empties.length)];
@@ -370,8 +356,6 @@
     if (empties.length) return empties[Math.floor(Math.random()*empties.length)];
     return null;
   }
-
-  // --- Minimax and full-state simulation (accounts for queues/removals) ---
   function cloneBoard(b) {
     return b.map(row => row.slice());
   }
@@ -420,9 +404,7 @@
     return true;
   }
 
-  function minimax(bd, q, turn, maximizingPlayer, depth) {
-    // Check terminal: no moves or someone has won (but we only detect wins on move simulation)
-    if (depth <= 0) return { score: 0 };
+  function minimax(bd, q, turn, maximizingPlayer, depth) {    if (depth <= 0) return { score: 0 };
 
     // generate all moves
     const empties = [];
@@ -462,9 +444,7 @@
     }
   }
 
-  function computeBestMoveFor(player) {
-    // default full depth
-    return computeBestMoveForDepth(player, 9);
+  function computeBestMoveFor(player) {    return computeBestMoveForDepth(player, 9);
   }
 
   function computeBestMoveForDepth(player, depth) {
@@ -481,18 +461,10 @@
 
 
   initBoard();
-
-  // Bot mode state
   let botActive = false;
   let botSide = 'O';
   let botDifficulty = 'normal';
-
-  // select removed; slider controls difficulty
-
-  // Slider -> difficulty mapping
-  if (difficultySlider) {
-    // initialize slider position from select/default
-    const initMap = { easy: '0', normal: '1', hard: '2' };
+  if (difficultySlider) {    const initMap = { easy: '0', normal: '1', hard: '2' };
     difficultySlider.value = initMap[botDifficulty] || '1';
     difficultySlider.addEventListener('input', (e) => {
       const v = e.target.value;
@@ -514,17 +486,11 @@
   function performBotMove() {
     if (gameOver || !botActive) return;
 
-    let mv = null;
-    // Easy: intentionally dumb — purely random
-    if (botDifficulty === 'easy') {
+    let mv = null;    if (botDifficulty === 'easy') {
       mv = randomEmpty();
-    } else if (botDifficulty === 'normal') {
-      // Normal: prefer heuristics, otherwise shallow minimax
-      mv = getHintFor(botSide);
+    } else if (botDifficulty === 'normal') {      mv = getHintFor(botSide);
       if (!mv) mv = computeBestMoveForDepth(botSide, 4);
-    } else {
-      // Hard: full minimax
-      mv = computeBestMoveForDepth(botSide, 9);
+    } else {      mv = computeBestMoveForDepth(botSide, 9);
     }
 
     if (!mv) { setStatus('Bot: no move available'); return; }
@@ -532,25 +498,13 @@
     setStatus(`Bot (${botDifficulty}) plays: cell (${r+1}, ${c+1})`);
     playMove(r, c);
   }
-
-  // Toggle bot on button click
-  hintBtn.addEventListener('click', () => {
-    // toggle mode
-    botActive = !botActive;
-    if (botActive) {
-      // bot will play as the opposite of the current player (so it plays next turns for the other side)
-      botSide = currentPlayer === 'X' ? 'O' : 'X';
+  hintBtn.addEventListener('click', () => {    botActive = !botActive;
+    if (botActive) {      botSide = currentPlayer === 'X' ? 'O' : 'X';
       hintBtn.textContent = 'Bot: ON';
       hintBtn.classList.add('bot-on');
-      hintBtn.setAttribute('aria-pressed', 'true');
-      // visual cue: change appearance when bot active
-      hintBtn.style.backgroundColor = cssVar('--accent-o', '#4fd1c5');
+      hintBtn.setAttribute('aria-pressed', 'true');      hintBtn.style.backgroundColor = cssVar('--accent-o', '#4fd1c5');
       hintBtn.style.color = '#042';
-      setStatus(`Bot enabled (playing as ${botSide})`);
-      // show slider if available
-      if (difficultySliderContainer) difficultySliderContainer.style.display = 'flex';
-      // if it's currently bot's turn, play immediately after a short delay
-      if (currentPlayer === botSide && !gameOver) setTimeout(performBotMove, 120);
+      setStatus(`Bot enabled (playing as ${botSide})`);      if (difficultySliderContainer) difficultySliderContainer.style.display = 'flex';      if (currentPlayer === botSide && !gameOver) setTimeout(performBotMove, 120);
     } else {
       hintBtn.textContent = 'Play Bot';
       hintBtn.classList.remove('bot-on');
@@ -561,7 +515,4 @@
       if (difficultySliderContainer) difficultySliderContainer.style.display = 'none';
     }
   });
-
-  // (previous wrapper removed) scheduling is handled inside finalizeAfterPlacement
-
 })();
