@@ -335,3 +335,44 @@ label {
     order: -1;
   }
 }
+
+/* Animated background layer (soft, non-intrusive) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0; /* sit behind UI which we'll raise to z-index:1 */
+  pointer-events: none;
+  /* subtle dotted SVG-like pattern using CSS gradients (static, light) */
+  background-color: #07121a;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 1px),
+    radial-gradient(circle at 31px 31px, rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(120deg, rgba(79,209,197,0.02), rgba(255,107,107,0.01));
+  background-size: 60px 60px, 60px 60px, cover;
+  filter: blur(10px) saturate(1.02);
+  opacity: 0.45;
+  transition: opacity 200ms ease;
+  mix-blend-mode: normal;
+}
+
+/* static decorative background (no animation) */
+
+/* Make the animation respectful of users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+    filter: blur(20px);
+    opacity: 0.6;
+  }
+}
+
+/* Provide a subtle 'dim' class consumers can toggle in JS if needed */
+.bg-muted::before { opacity: 0.35 !important; }
+
+/* Ensure the main wrapper sits above the animated background */
+.wrapper {
+  position: relative;
+  z-index: 1;
+}
+
