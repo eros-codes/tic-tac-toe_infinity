@@ -1,26 +1,33 @@
+// main.js
 (() => {
   const BOARD_SIZE = 3;
   const WIN_LENGTH = 3;
   const MAX_PIECES = 3;
-
-  let board = [];
-  let currentPlayer = 'X';
-  let queues = { X: [], O: [] };
+  // game state variables
+  let board = null;
+  let queues = null;
   let moveId = 1;
   let gameOver = false;
   let lastWinningCells = [];
-
+  let currentPlayer = 'X';
+  const resetBtn = document.getElementById('resetBtn');
+  const difficultySliderContainer = document.getElementById('botDifficultySliderContainer');
+  const difficultySlider = document.getElementById('botDifficultySlider');
   const gridEl = document.getElementById('grid');
+  const boardWrap = document.querySelector('.board-wrap');
   const currentPlayerChip = document.getElementById('currentPlayerChip');
   const statusText = document.getElementById('statusText');
-  const metaBoardInfo = document.getElementById('metaBoardInfo');
   const resultMsg = document.getElementById('resultMsg');
   const hintBtn = document.getElementById('hintBtn');
   const swapBtn = document.getElementById('swapBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const clearHighlightsBtn = document.getElementById('clearHighlights');
-  const difficultySliderContainer = document.getElementById('botDifficultySliderContainer');
-  const difficultySlider = document.getElementById('botDifficultySlider');
+  // face elements (decorative)
+  const faceEl = document.getElementById('botFace');
+  // leftEye/rightEye outer rings were removed; we only have pupils now
+  const leftPupil = document.getElementById('leftPupil');
+  const rightPupil = document.getElementById('rightPupil');
+  const leftPupilWrap = document.getElementById('leftPupilWrap');
+  const rightPupilWrap = document.getElementById('rightPupilWrap');
+  const smileEl = document.getElementById('smile');
 
   function cssVar(name, fallback){
     try {
@@ -32,8 +39,6 @@
   }
 
   function initBoard() {
-    metaBoardInfo.textContent = `${BOARD_SIZE} × ${BOARD_SIZE}, win length: ${WIN_LENGTH}`;
-
     board = new Array(BOARD_SIZE);
     for (let r = 0; r < BOARD_SIZE; r++) board[r] = new Array(BOARD_SIZE).fill(null);
 
@@ -41,7 +46,6 @@
     moveId = 1;
     gameOver = false;
     lastWinningCells = [];
-    updateMeta();
     renderGrid();
     markOldestForRemoval();
     setStatus('Game reset');
@@ -165,15 +169,21 @@
     if (queues[player].length >= MAX_PIECES) {
       const old = queues[player].shift();
       // animate removal, then place the new piece
+      // have the face look at the cell while the piece is being removed
+      try { lookAtCell(old.r, old.c, 380); } catch (e) { /* ignore when face not present */ }
       animateRemove(old.r, old.c, () => {
         board[old.r][old.c] = null;
         // now place new
         board[r][c] = player;
+        try { lookAtCell(r, c, 240); } catch (e) { /* ignore when face not present */ }
         const thisMove = { r, c, id: moveId++ };
         queues[player].push(thisMove);
         finalizeAfterPlacement(r, c);
       });
-    } else {      board[r][c] = player;
+    } else {
+      // look at placed cell briefly when placing without prior removal
+      board[r][c] = player;
+      try { lookAtCell(r, c, 240); } catch (e) { /* ignore when face not present */ }
       const thisMove = { r, c, id: moveId++ };
       queues[player].push(thisMove);
       finalizeAfterPlacement(r, c);
@@ -181,6 +191,7 @@
   }
 
   function animateRemove(r, c, cb) {
+    try { lookAtCell(r, c, 380); } catch (e) { /* ignore when face not present */ }
     const idx = r * BOARD_SIZE + c;
     const el = gridEl.children[idx];
     if (!el) { if (typeof cb === 'function') cb(); return; }
@@ -234,15 +245,15 @@
       const el = gridEl.children[idx];
       if (el) el.classList.add('win');
     }
-  for (const [r,c] of lastWinningCells) {
-    const idx = r * BOARD_SIZE + c;
-    const el = gridEl.children[idx];
-    if (el && el.classList.contains('will-remove')) {
-      el.classList.remove('will-remove');
-      el.style.opacity = "1";
-      el.style.filter = "none";
+    for (const [r,c] of lastWinningCells) {
+      const idx = r * BOARD_SIZE + c;
+      const el = gridEl.children[idx];
+      if (el && el.classList.contains('will-remove')) {
+        el.classList.remove('will-remove');
+        el.style.opacity = "1";
+        el.style.filter = "none";
+      }
     }
-  }
   }
 
   function markOldestForRemoval() {
@@ -263,6 +274,7 @@
   resetBtn.addEventListener('click', () => {
     currentPlayer = 'X';
     initBoard();
+    resetFacePlacement();
   });
 
   swapBtn.addEventListener('click', () => {
@@ -270,14 +282,6 @@
     updateMeta();
     setStatus(`Turn switched to ${currentPlayer}`);
   });
-
-  clearHighlightsBtn.addEventListener('click', () => {
-    lastWinningCells = [];
-    highlightWinningCells();
-    resultMsg.style.display = 'none';
-  });
-
-  
 
   function findWinningMove(player) {
     for (let r = 0; r < BOARD_SIZE; r++) {
@@ -474,6 +478,243 @@
     });
   }
 
+  // --- Face / gaze helpers ---
+  let _lookTimer = null;
+  let _blinkTimer = null;
+  let _hideTimer = null;
+  let _isLooking = false;
+  const PREFERS_REDUCED = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || false;
+
+  function _clearLookTimer() { if (_lookTimer) { clearTimeout(_lookTimer); _lookTimer = null; } }
+  function _clearBlinkTimer() { if (_blinkTimer) { clearTimeout(_blinkTimer); _blinkTimer = null; } }
+  function _clearHideTimer() { if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; } }
+
+  function showFace() {
+    if (!faceEl) { console.debug('showFace: faceEl is null'); return; }
+    // cancel any pending hide so it doesn't override this show
+    _clearHideTimer();
+    console.debug('showFace: called, faceEl=', faceEl);
+    // Ensure face background matches the element we're anchoring to
+    try {
+      const anchorEl = gridEl || document.querySelector('.board-wrap') || document.body;
+      const anchorBg = getComputedStyle(anchorEl).backgroundColor || getComputedStyle(anchorEl).background || '';
+      if (anchorBg) faceEl.style.setProperty('--face-bg', anchorBg);
+      // keep scaling anchored to bottom so the bottom edge remains flush
+      faceEl.style.transformOrigin = '50% 100%';
+    } catch (e) { }
+    // Show the face and position it so its bottom edge lines up with the grid's top.
+    // We'll measure in two animation frames: first to ensure the element is rendered,
+    // decide a scale based on the space inside the board container, apply it,
+    // then re-measure and set `top` so the bottom of the face is flush with the grid top.
+    // ensure the face is visible (no inline display:none) — we prefer visibility/opacity
+    try { faceEl.style.removeProperty('display'); } catch (e) {}
+    try { faceEl.style.removeProperty('visibility'); } catch (e) {}
+    // make visible immediately so first-click shows the face reliably;
+    // precise placement will be computed in the RAF callbacks below
+    faceEl.classList.add('visible');
+    try { faceEl.setAttribute('aria-hidden', 'false'); } catch (e) {}
+    if (boardWrap) boardWrap.classList.add('bot-curve');
+    faceEl.style.left = '50%';
+    faceEl.style.bottom = '';
+    faceEl.style.top = '';
+      // clear any bottom offset and reset top/left so we compute exact pixels
+      faceEl.style.removeProperty('bottom');
+      faceEl.style.top = '';
+      faceEl.style.left = '';
+    // First RAF: element is visible, measure natural size and container spacing
+    requestAnimationFrame(() => {
+      try {
+          const anchorEl = faceEl.parentElement || document.querySelector('.board-wrap') || document.body;
+          const gridRect = gridEl.getBoundingClientRect();
+          const parentRect = anchorEl.getBoundingClientRect();
+          const faceRect = faceEl.getBoundingClientRect();
+        // available space inside the board-wrap above the grid
+        const internalSpace = Math.max(0, gridRect.top - parentRect.top - 6); // small margin
+        const viewportSpaceAboveGrid = Math.max(0, gridRect.top - 8); // how far from viewport top to grid
+        // scale so the face will fit into the space above the grid and stay at least partly visible
+        const minScale = 0.6;
+        let desiredScale = Math.min(internalSpace / faceRect.height, viewportSpaceAboveGrid / faceRect.height);
+        let scale = Math.min(1, Math.max(minScale, desiredScale));
+        faceEl.style.setProperty('--face-scale', String(scale));
+        // Second RAF: allow browser to apply scale and layout, then compute final precise position
+        requestAnimationFrame(() => {
+          try {
+            positionFace();
+          } catch (e) {
+            faceEl.style.top = '';
+            faceEl.style.removeProperty('--face-scale');
+          }
+          try { faceEl.setAttribute('aria-hidden', 'false'); } catch (e) {}
+          const finalRect = faceEl.getBoundingClientRect();
+          console.debug('showFace: added .visible, final bbox:', finalRect);
+        });
+      } catch (err) {
+        // fallback: just make it visible anchored to bottom
+        faceEl.style.top = '';
+        faceEl.style.bottom = '100%';
+        faceEl.style.removeProperty('--face-scale');
+        faceEl.classList.add('visible');
+        try { faceEl.style.removeProperty('display'); } catch (e) {}
+        try { faceEl.setAttribute('aria-hidden', 'false'); } catch (e) {}
+      }
+    });
+    lookCenter(180);
+    if (smileEl) smileEl.classList.add('idle');
+    scheduleBlink();
+    scheduleTwitch();
+  }
+
+  function hideFace() {
+    if (!faceEl) return;
+    faceEl.classList.remove('visible');
+    try { faceEl.setAttribute('aria-hidden', 'true'); } catch (e) {}
+    if (boardWrap) boardWrap.classList.remove('bot-curve');
+    _clearLookTimer();
+    _clearBlinkTimer();
+    _clearHideTimer();
+    _hideTimer = setTimeout(() => {
+      // only hide via removing visibility if the face is still not visible — this avoids races
+      try {
+        if (faceEl && !faceEl.classList.contains('visible')) {
+          try { faceEl.style.setProperty('visibility', 'hidden'); } catch (e) {}
+        }
+      } catch (e) {}
+      _hideTimer = null;
+    }, 260);
+    if (smileEl) smileEl.classList.remove('idle');
+    _clearTwitchTimer();
+  }
+
+  function scheduleBlink() {
+    if (PREFERS_REDUCED || !faceEl) return;
+    _clearBlinkTimer();
+    const delay = 3000 + Math.floor(Math.random() * 4000);
+    _blinkTimer = setTimeout(() => {
+      if (_isLooking) return scheduleBlink();
+      if (!leftPupil || !rightPupil || !leftPupilWrap || !rightPupilWrap) return scheduleBlink();
+      // add blink to wrapper so it scales without overriding pupil translate
+      leftPupilWrap.classList.add('eye-blink');
+      rightPupilWrap.classList.add('eye-blink');
+      setTimeout(() => { leftPupilWrap.classList.remove('eye-blink'); rightPupilWrap.classList.remove('eye-blink'); scheduleBlink(); }, 360);
+    }, delay);
+  }
+
+  // small micro-twitch movements for pupils (makes the face feel alive)
+  let _twitchTimer = null;
+  function _clearTwitchTimer() { if (_twitchTimer) { clearTimeout(_twitchTimer); _twitchTimer = null; } }
+  function scheduleTwitch() {
+    if (PREFERS_REDUCED || !faceEl) return;
+    _clearTwitchTimer();
+    const delay = 1800 + Math.floor(Math.random() * 2600);
+    _twitchTimer = setTimeout(() => {
+      if (!leftPupil || !rightPupil) return scheduleTwitch();
+      // do a tiny, intentional glance — not jitter: translate pupils smoothly to a small random offset, hold and return
+      if (_isLooking) return scheduleTwitch();
+      const tx = (Math.random() * 8 - 4); // -4..4 px
+      const ty = (Math.random() * 6 - 3); // -3..3 px
+      // shorter duration for a quick glance
+      const dur = 420;
+      // apply transform with transition
+      leftPupil.style.transition = `transform ${Math.floor(dur * 0.6)}ms cubic-bezier(.22,.8,.28,1)`;
+      rightPupil.style.transition = `transform ${Math.floor(dur * 0.6)}ms cubic-bezier(.22,.8,.28,1)`;
+      leftPupil.style.transform = `translate(${tx}px, ${ty}px)`;
+      rightPupil.style.transform = `translate(${tx * 0.82}px, ${ty * 0.88}px)`; // slight asymmetry
+      // subtle smile response
+      if (smileEl) smileEl.style.transform = `translateY(${Math.min(3, Math.abs(ty))}px) scaleX(${1 + Math.abs(tx) / 140})`;
+      setTimeout(() => {
+        // return
+        leftPupil.style.transition = `transform ${Math.floor(dur * 0.5)}ms cubic-bezier(.22,.8,.28,1)`;
+        rightPupil.style.transition = `transform ${Math.floor(dur * 0.5)}ms cubic-bezier(.22,.8,.28,1)`;
+        leftPupil.style.transform = `translate(0px, 0px)`;
+        rightPupil.style.transform = `translate(0px, 0px)`;
+        if (smileEl) smileEl.style.transform = `translateY(0px) scaleX(1)`;
+        scheduleTwitch();
+      }, dur);
+    }, delay);
+  }
+
+  function lookCenter(duration = 250) {
+    if (!faceEl) return;
+    _isLooking = false;
+    _clearLookTimer();
+    if (leftPupil) leftPupil.style.transition = `transform ${duration}ms cubic-bezier(.2,.9,.3,1)`;
+    if (rightPupil) rightPupil.style.transition = `transform ${duration}ms cubic-bezier(.2,.9,.3,1)`;
+    if (leftPupil) leftPupil.style.transform = `translate(0px, 0px)`;
+    if (rightPupil) rightPupil.style.transform = `translate(0px, 0px)`;
+    if (smileEl) smileEl.style.transform = `translateY(0px)`;
+  }
+
+  function lookAtCell(r, c, duration = 320) {
+    if (!faceEl || !_elementVisible(faceEl)) return;
+    const cells = gridEl.children;
+    const idx = r * BOARD_SIZE + c;
+    const targetEl = cells[idx];
+    if (!targetEl) { lookCenter(duration); return; }
+    const faceRect = faceEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+    const faceCenter = { x: faceRect.left + faceRect.width/2, y: faceRect.top + faceRect.height/2 };
+    const targetCenter = { x: targetRect.left + targetRect.width/2, y: targetRect.top + targetRect.height/2 };
+    const dx = targetCenter.x - faceCenter.x;
+    const dy = targetCenter.y - faceCenter.y;
+    const tx = clamp(dx * 0.06, -10, 10);
+    const ty = clamp(dy * 0.045, -6, 6);
+    _isLooking = true;
+    _clearLookTimer();
+    if (leftPupil) leftPupil.style.transition = `transform ${Math.max(120, duration)}ms cubic-bezier(.15,.9,.15,1)`;
+    if (rightPupil) rightPupil.style.transition = `transform ${Math.max(120, duration)}ms cubic-bezier(.15,.9,.15,1)`;
+    if (leftPupil) leftPupil.style.transform = `translate(${tx}px, ${ty}px)`;
+    if (rightPupil) rightPupil.style.transform = `translate(${tx}px, ${ty}px)`;
+    if (smileEl) smileEl.style.transform = `translateY(${Math.min(3, Math.abs(ty))}px) scaleX(${1 + Math.abs(tx) / 120})`;
+    _lookTimer = setTimeout(() => { lookCenter(Math.max(160, Math.floor(duration * 0.7))); }, duration + 20);
+  }
+
+  function _elementVisible(el) { return !!el && el.style && getComputedStyle(el).display !== 'none' && getComputedStyle(el).opacity !== '0'; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  // positionFace: compute pixel-accurate top/left so the semicircle base (path #faceBg)
+  // aligns exactly with the top edge of the grid. Uses the path bounding box
+  // because the visible semicircle may not fill the SVG viewport exactly.
+  function positionFace() {
+    if (!faceEl || !gridEl) return;
+    const anchorEl = faceEl.parentElement || document.querySelector('.board-wrap') || document.body;
+    const gridRect = gridEl.getBoundingClientRect();
+    const parentRect = anchorEl.getBoundingClientRect();
+    const faceRect = faceEl.getBoundingClientRect();
+    // try to find the explicit semicircle element inside the SVG
+    const faceBg = faceEl.querySelector('#faceBg') || faceEl.querySelector('path');
+    let baseOffsetFromFaceTop = faceRect.height; // fallback: assume bottom of face
+    if (faceBg && typeof faceBg.getBoundingClientRect === 'function') {
+      try {
+        const faceBgRect = faceBg.getBoundingClientRect();
+        baseOffsetFromFaceTop = faceBgRect.bottom - faceRect.top;
+      } catch (e) {
+        baseOffsetFromFaceTop = faceRect.height;
+      }
+    }
+    // compute top so the bottom of the semicircle (faceBg) aligns with the top of the grid
+    const topRel = Math.round((gridRect.top - parentRect.top) - baseOffsetFromFaceTop);
+    const leftCenter = Math.round((gridRect.left - parentRect.left) + gridRect.width / 2);
+    faceEl.style.top = `${topRel}px`;
+    faceEl.style.left = `${leftCenter}px`;
+    faceEl.style.transformOrigin = '50% 100%';
+  }
+
+  // Reposition on resize so face stays attached when viewport or layout changes
+  window.addEventListener('resize', () => { try { positionFace(); } catch (e) {} });
+  // --- end face helpers ---
+
+  function resetFacePlacement() {
+    if (!faceEl) return;
+    faceEl.style.removeProperty('--face-scale');
+    faceEl.style.removeProperty('left');
+    faceEl.style.removeProperty('top');
+    faceEl.style.removeProperty('bottom');
+    requestAnimationFrame(() => {
+      try { positionFace(); } catch (e) {}
+    });
+    lookCenter(120);
+  }
+
   function getHintFor(player) {
     return findWinningMove(player)
       || findBlockingMove(player)
@@ -499,12 +740,17 @@
     playMove(r, c);
   }
   hintBtn.addEventListener('click', () => {    botActive = !botActive;
+    console.debug('hintBtn clicked -> botActive=', botActive, 'currentPlayer=', currentPlayer, 'faceEl=', faceEl);
     if (botActive) {      botSide = currentPlayer === 'X' ? 'O' : 'X';
       hintBtn.textContent = 'Bot: ON';
       hintBtn.classList.add('bot-on');
       hintBtn.setAttribute('aria-pressed', 'true');      hintBtn.style.backgroundColor = cssVar('--accent-o', '#4fd1c5');
       hintBtn.style.color = '#042';
-      setStatus(`Bot enabled (playing as ${botSide})`);      if (difficultySliderContainer) difficultySliderContainer.style.display = 'flex';      if (currentPlayer === botSide && !gameOver) setTimeout(performBotMove, 120);
+      setStatus(`Bot enabled (playing as ${botSide})`);
+      if (difficultySliderContainer) difficultySliderContainer.style.display = 'flex';
+      // show the face overlay
+      showFace();
+      if (currentPlayer === botSide && !gameOver) setTimeout(performBotMove, 120);
     } else {
       hintBtn.textContent = 'Play Bot';
       hintBtn.classList.remove('bot-on');
@@ -513,6 +759,7 @@
       hintBtn.style.color = '';
       setStatus('Bot disabled');
       if (difficultySliderContainer) difficultySliderContainer.style.display = 'none';
+      hideFace();
     }
   });
 })();

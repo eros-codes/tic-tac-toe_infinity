@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!doctype html>
 <html lang="en" dir="ltr">
 <head>
@@ -46,23 +47,38 @@
   </aside>
 
   <main class="board-wrap">
-    <div class="meta">
-      <div class="left">
-        <div class="small">Board:</div>
-        <div id="metaBoardInfo" class="muted" style="margin-inline-start:8px"></div>
+    <div class="bot-arch" aria-hidden="true">
+      <div class="bot-arch-inner" aria-hidden="true">
+        <div id="botFace" class="bot-face" aria-hidden="true">
+          <svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet" width="100%" height="100%" focusable="false" aria-hidden="true">
+            <g id="faceBase" transform="translate(0,0)">
+              <!-- eyes: group with two pupils we will translate -->
+              <g id="eyes" transform="translate(0,0)" fill="none" stroke="none">
+                <!-- pupil wrappers to allow blink scaling without overwriting translate transforms -->
+                <g id="leftPupilWrap" class="pupil-wrap">
+                  <circle id="leftPupil" cx="84" cy="120" r="4.2" fill="#ffffff" opacity="0.98" />
+                </g>
+                <g id="rightPupilWrap" class="pupil-wrap">
+                  <circle id="rightPupil" cx="116" cy="120" r="4.2" fill="#ffffff" opacity="0.98" />
+                </g>
+              </g>
+              <!-- smile -->
+              <path id="smile" d="M88,140 Q100,150 112,140" stroke="#ffffff" stroke-width="3" fill="transparent" stroke-linecap="round" stroke-linejoin="round" />
+            </g>
+          </svg>
+        </div>
       </div>
+    </div>
+
+    <div class="meta">
       <div class="right">
         <div id="resultMsg" class="msg" style="display:none"></div>
       </div>
     </div>
-
     <div id="grid" class="grid" role="grid" aria-label="Game board"></div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+    <div class="board-foot">
       <div class="muted">Rules: Each player may have up to 3 pieces at once; placing a fourth removes the oldest piece.</div>
-      <div style="display:flex;gap:8px">
-        <button id="clearHighlights" class="btn ghost">Clear Highlights</button>
-      </div>
     </div>
   </main>
 </div>
