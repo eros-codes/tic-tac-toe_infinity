@@ -170,6 +170,16 @@
       currentPlayer = player === 'X' ? 'O' : 'X';
       updateMeta();
       setStatus(`Player ${currentPlayer}'s turn`);
+      if (botActive) {
+        hintBtn.disabled = true;
+      } else {
+        hintBtn.disabled = false;
+        if (moveId > 1) {
+          hintBtn.textContent = 'Get Hint';
+        } else {
+          hintBtn.textContent = 'Play Bot';
+        }
+      }
       setTimeout(() => {
         if (botActive && !gameOver && currentPlayer === botSide) {
           performBotMove();
@@ -283,6 +293,24 @@
     currentPlayer = 'X';
     initBoard();
     resetFacePlacement();
+    
+    if (hintBtn.textContent === 'Get Hint') {
+      hintBtn.textContent = 'Play Bot';
+    } else if (hintBtn.textContent === 'Bot: ON') {
+      // Leave it as is, don't change anything
+    } else {
+      hintBtn.textContent = 'Play Bot';
+      hintBtn.classList.remove('bot-on');
+      hintBtn.setAttribute('aria-pressed', 'false');
+      hintBtn.style.backgroundColor = '';
+      hintBtn.style.color = '';
+      if (botActive) {
+        botActive = false;
+        if (difficultySliderContainer) difficultySliderContainer.style.display = 'none';
+        hideFace();
+      }
+    }
+    hintBtn.disabled = false;
   });
 
   swapBtn.addEventListener('click', () => {
@@ -844,27 +872,49 @@
     playMove(r, c);
   }
   hintBtn.addEventListener('click', () => {
-    botActive = !botActive;
-    console.debug('hintBtn clicked -> botActive=', botActive, 'currentPlayer=', currentPlayer, 'faceEl=', faceEl);
-    if (botActive) {
-      botSide = currentPlayer === 'X' ? 'O' : 'X';
-      hintBtn.textContent = 'Bot: ON';
-      hintBtn.classList.add('bot-on');
-      hintBtn.setAttribute('aria-pressed', 'true');
-      difficultySliderContainer.style.display = 'flex';
-      showFace();
-      if (currentPlayer === botSide) {
-        setTimeout(performBotMove, 120);
+    if (hintBtn.disabled) {
+      return;
+    }
+    
+    if (moveId > 1) {
+      hintBtn.textContent = 'Get Hint';
+      const hint = getHintFor(currentPlayer);
+      if (hint) {
+        const [r, c] = hint;
+        setStatus(`Hint: play cell (${r+1}, ${c+1})`);
+        const idx = r * BOARD_SIZE + c;
+        const cell = gridEl.children[idx];
+        if (cell) {
+          cell.classList.add('win');
+          setTimeout(() => cell.classList.remove('win'), 2000);
+        }
+      } else {
+        setStatus('No hint available');
       }
     } else {
       hintBtn.textContent = 'Play Bot';
-      hintBtn.classList.remove('bot-on');
-      hintBtn.setAttribute('aria-pressed', 'false');
-      hintBtn.style.backgroundColor = '';
-      hintBtn.style.color = '';
-      setStatus('Bot disabled');
-      if (difficultySliderContainer) difficultySliderContainer.style.display = 'none';
-      hideFace();
+      botActive = !botActive;
+      console.debug('hintBtn clicked -> botActive=', botActive, 'currentPlayer=', currentPlayer, 'faceEl=', faceEl);
+      if (botActive) {
+        botSide = currentPlayer === 'X' ? 'O' : 'X';
+        hintBtn.textContent = 'Bot: ON';
+        hintBtn.classList.add('bot-on');
+        hintBtn.setAttribute('aria-pressed', 'true');
+        difficultySliderContainer.style.display = 'flex';
+        showFace();
+        if (currentPlayer === botSide) {
+          setTimeout(performBotMove, 120);
+        }
+      } else {
+        hintBtn.textContent = 'Play Bot';
+        hintBtn.classList.remove('bot-on');
+        hintBtn.setAttribute('aria-pressed', 'false');
+        hintBtn.style.backgroundColor = '';
+        hintBtn.style.color = '';
+        setStatus('Bot disabled');
+        if (difficultySliderContainer) difficultySliderContainer.style.display = 'none';
+        hideFace();
+      }
     }
   });
 })();
