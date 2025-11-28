@@ -439,6 +439,7 @@ label {
 
 .bot-face.face-win #rightEyeLine {
   animation: winWinkLid 640ms cubic-bezier(.55,.02,.45,1) 1280ms both;
+  stroke-width: 0.5;
 }
 
 .bot-face.face-win #leftPupilWrap,

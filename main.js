@@ -843,25 +843,19 @@
     setStatus(`Bot (${botDifficulty}) plays: cell (${r+1}, ${c+1})`);
     playMove(r, c);
   }
-  hintBtn.addEventListener('click', () => {    botActive = !botActive;
+  hintBtn.addEventListener('click', () => {
+    botActive = !botActive;
     console.debug('hintBtn clicked -> botActive=', botActive, 'currentPlayer=', currentPlayer, 'faceEl=', faceEl);
-    if (botActive) {      botSide = currentPlayer === 'X' ? 'O' : 'X';
+    if (botActive) {
+      botSide = currentPlayer === 'X' ? 'O' : 'X';
       hintBtn.textContent = 'Bot: ON';
       hintBtn.classList.add('bot-on');
-      hintBtn.setAttribute('aria-pressed', 'true');      hintBtn.addEventListener('click', () => {
-    if (botActive) {
-      botActive = false;
-      hintBtn.textContent = 'Play Bot';
-      difficultySliderContainer.style.display = 'none';
-      hideFace();
-    } else {
-      botActive = true;
-      hintBtn.textContent = 'Stop Bot';
+      hintBtn.setAttribute('aria-pressed', 'true');
       difficultySliderContainer.style.display = 'flex';
       showFace();
-    }
-    setStatus(botActive ? 'Bot activated' : 'Bot deactivated');
-  });setTimeout(performBotMove, 120);
+      if (currentPlayer === botSide) {
+        setTimeout(performBotMove, 120);
+      }
     } else {
       hintBtn.textContent = 'Play Bot';
       hintBtn.classList.remove('bot-on');
