@@ -17,7 +17,7 @@
 .bot-face.face-poker #joyfulMouthOpen {
   opacity: 0 !important;
 }
-/* tic-tac-toe.css */
+
 :root {
   --bg: #0f1724;
   --panel: #0b1220;
@@ -275,7 +275,7 @@ label {
   position: relative;
 }
 
-/* Bot face overlay */
+
 .bot-arch .bot-face {
   position: absolute;
   top: 50%;
@@ -398,8 +398,8 @@ label {
 }
 
 .bot-face.face-win #joyfulMouth {
-  opacity: 1; /* Show the semi-circle */
-  /* Start with full semi-circle, animate to match smile curve */
+  opacity: 1;
+
   d: path('M82,140 A 18 18 0 0 0 118,140');
   stroke-width: 2;
   transition: opacity 160ms cubic-bezier(.25,1,.5,1), d 350ms cubic-bezier(.25,1,.5,1);
@@ -407,7 +407,7 @@ label {
 }
 
 .bot-face.face-win #joyfulMouthOpen {
-  opacity: 0; /* Hide the other semi-circle */
+  opacity: 0;
 }
 
 .bot-face.face-win #smile {
@@ -420,9 +420,9 @@ label {
 }
 
 .bot-face.face-win #flatMouth {
-  opacity: 1; /* Show flat mouth with semi-circle */
-  stroke-width: 1; /* Make the flat mouth even thinner */
-  /* Animate from flat to curved like the smile */
+  opacity: 1;
+  stroke-width: 1;
+
   d: path('M84,142 Q100,148 116,142');
   transition: d 350ms cubic-bezier(.25,1,.5,1);
   animation: winFlatFade 1250ms cubic-bezier(.42,.0,.2,1) 0s both;
@@ -452,38 +452,35 @@ label {
 }
 
 @keyframes defeatHeadStory {
-  /* Phase 1: quick inhale (slight lift) */
+
   0%   { transform: translate(0, 0); }
   12%  { transform: translate(0, -3px); }
   18%  { transform: translate(0, -2px); }
   24%  { transform: translate(0, 0); }
-  /* Phase 2: exhale drop straight down */
+
   38%  { transform: translate(0, 8px); }
   46%  { transform: translate(0, 9px); }
-  /* Phase 3: still low, sway L-R-L */
+
   58%  { transform: translate(-5px, 9px); }
   70%  { transform: translate(5px, 8px); }
   82%  { transform: translate(-3px, 7px); }
-  /* Phase 4: return upwards to neutral */
+
   94%  { transform: translate(2px, 3px); }
   100% { transform: translate(0, 0); }
 }
 
-/* Pupils movement controlled via transform on the <circle> elements */
-/* pupils are small white dots */
+
 #leftPupil, #rightPupil {
   transform-origin: center;
   transition: transform 220ms cubic-bezier(.2,.9,.3,1), r 350ms cubic-bezier(.25,1,.5,1);
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.28));
 }
 
-/* Smile subtle movement */
 #smile { transition: transform 260ms cubic-bezier(.2,.9,.3,1), stroke 200ms ease; transform-origin: center; }
-/* white thicker smile */
-/* white, slightly thicker, and cuter smile */
+
 #botFace svg #smile { stroke: #ffffff; stroke-width: 3.0; opacity: 0.98; stroke-linecap:round; }
 
-/* blink animation */
+
 @keyframes face-blink {
   0% { transform: scaleY(1); }
   45% { transform: scaleY(0.08); }
@@ -493,7 +490,7 @@ label {
 .pupil-wrap { transform-box: fill-box; transform-origin: center; }
 .eye-blink { transform-origin: center; animation: face-blink 320ms ease-in-out; }
 
-/* face zoom animation */
+
 @keyframes faceWinExpression {
   0%   { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1)    rotate(0deg); }
   18%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1.08) rotate(7deg); }
@@ -551,7 +548,7 @@ label {
   100% { opacity: 0; }
 }
 
-/* subtle idle smile pulse (very small) */
+
 @keyframes smile-pulse {
   0% { transform: translateY(0) scaleX(1); }
   50% { transform: translateY(1px) scaleX(1.02); }
@@ -559,7 +556,7 @@ label {
 }
 .bot-face.visible #smile.idle { animation: smile-pulse 2400ms ease-in-out infinite; }
 
-/* tiny periodic eye twitch (subtle micro-movement) */
+
 @keyframes glance-small {
   0% { transform: translate(0,0) }
   30% { transform: translate(4px, -2px) }
@@ -568,7 +565,7 @@ label {
 }
 .pupil-twitch { animation: glance-small 420ms cubic-bezier(.22,.8,.28,1); }
 
-/* If reduced motion is requested we'll keep the face static */
+
 @media (prefers-reduced-motion: reduce) {
   .bot-face, #leftPupil, #rightPupil, #smile { transition: none !important; animation: none !important; }
 }
@@ -701,14 +698,14 @@ label {
   }
 }
 
-/* Animated background layer (soft, non-intrusive) */
+
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 0; /* sit behind UI which we'll raise to z-index:1 */
+  z-index: 0;
   pointer-events: none;
-  /* subtle dotted SVG-like pattern using CSS gradients (static, light) */
+
   background-color: #07121a;
   background-image:
     radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 1px),
@@ -721,9 +718,6 @@ body::before {
   mix-blend-mode: normal;
 }
 
-/* static decorative background (no animation) */
-
-/* Make the animation respectful of users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   body::before {
     animation: none;
@@ -732,10 +726,8 @@ body::before {
   }
 }
 
-/* Provide a subtle 'dim' class consumers can toggle in JS if needed */
 .bg-muted::before { opacity: 0.35 !important; }
 
-/* Ensure the main wrapper sits above the animated background */
 .wrapper {
   position: relative;
   z-index: 1;

@@ -1,9 +1,7 @@
-// main.js
 (() => {
   const BOARD_SIZE = 3;
   const WIN_LENGTH = 3;
   const MAX_PIECES = 3;
-  // game state variables
   let board = null;
   let queues = null;
   let moveId = 1;
@@ -24,9 +22,7 @@
   const resultMsg = document.getElementById('resultMsg');
   const hintBtn = document.getElementById('hintBtn');
   const swapBtn = document.getElementById('swapBtn');
-  // face elements (decorative)
   const faceEl = document.getElementById('botFace');
-  // leftEye/rightEye outer rings were removed; we only have pupils now
   const leftPupil = document.getElementById('leftPupil');
   const rightPupil = document.getElementById('rightPupil');
   const leftPupilWrap = document.getElementById('leftPupilWrap');
@@ -182,23 +178,19 @@
     }
     if (queues[player].length >= MAX_PIECES) {
       const old = queues[player].shift();
-      // animate removal, then place the new piece
-      // have the face look at the cell while the piece is being removed
-      try { lookAtCell(old.r, old.c, 380); } catch (e) { /* ignore when face not present */ }
+      try { lookAtCell(old.r, old.c, 380); } catch (e) { }
       animateRemove(old.r, old.c, () => {
         board[old.r][old.c] = null;
-        // now place new
         board[r][c] = player;
-        try { lookAtCell(r, c, 240); } catch (e) { /* ignore when face not present */ }
+        try { lookAtCell(r, c, 240); } catch (e) { }
         const thisMove = { r, c, id: moveId++ };
         queues[player].push(thisMove);
         recordBotPlacementIfNeeded(player);
         finalizeAfterPlacement(r, c);
       });
     } else {
-      // look at placed cell briefly when placing without prior removal
       board[r][c] = player;
-      try { lookAtCell(r, c, 240); } catch (e) { /* ignore when face not present */ }
+      try { lookAtCell(r, c, 240); } catch (e) { }
       const thisMove = { r, c, id: moveId++ };
       queues[player].push(thisMove);
       recordBotPlacementIfNeeded(player);
@@ -207,7 +199,7 @@
   }
 
   function animateRemove(r, c, cb) {
-    try { lookAtCell(r, c, 380); } catch (e) { /* ignore when face not present */ }
+    try { lookAtCell(r, c, 380); } catch (e) { }
     const idx = r * BOARD_SIZE + c;
     const el = gridEl.children[idx];
     if (!el) { if (typeof cb === 'function') cb(); return; }
@@ -277,7 +269,7 @@
 
     ['X','O'].forEach(player => {
       if (queues[player] && queues[player].length >= MAX_PIECES) {
-        const oldest = queues[player][0]; // oldest
+        const oldest = queues[player][0];
         if (oldest) {
           const idx = oldest.r * BOARD_SIZE + oldest.c;
           const el = gridEl.children[idx];
@@ -426,7 +418,6 @@
 
   function minimax(bd, q, turn, maximizingPlayer, depth) {    if (depth <= 0) return { score: 0 };
 
-    // generate all moves
     const empties = [];
     for (let r = 0; r < BOARD_SIZE; r++) for (let c = 0; c < BOARD_SIZE; c++) if (bd[r][c] === null) empties.push([r,c]);
     if (empties.length === 0) return { score: 0 };
@@ -447,7 +438,6 @@
       }
       return { score: bestScore, move: bestMove };
     } else {
-      // minimizing for opponent
       let bestScore = Infinity;
       for (const [r,c] of empties) {
         const s = simulateMoveState(bd, q, turn, r, c);
@@ -494,7 +484,6 @@
     });
   }
 
-  // --- Face / gaze helpers ---
   let _lookTimer = null;
   let _blinkTimer = null;
   let _hideTimer = null;
@@ -512,27 +501,17 @@
 
   function showFace() {
     if (!faceEl) { console.debug('showFace: faceEl is null'); return; }
-    // cancel any pending hide so it doesn't override this show
     _clearHideTimer();
     _clearBonkTimer();
     console.debug('showFace: called, faceEl=', faceEl);
-    // Ensure face background matches the element we're anchoring to
     try {
       const anchorEl = gridEl || document.querySelector('.board-wrap') || document.body;
       const anchorBg = getComputedStyle(anchorEl).backgroundColor || getComputedStyle(anchorEl).background || '';
       if (anchorBg) faceEl.style.setProperty('--face-bg', anchorBg);
-      // keep scaling anchored to bottom so the bottom edge remains flush
       faceEl.style.transformOrigin = '50% 100%';
     } catch (e) { }
-    // Show the face and position it so its bottom edge lines up with the grid's top.
-    // We'll measure in two animation frames: first to ensure the element is rendered,
-    // decide a scale based on the space inside the board container, apply it,
-    // then re-measure and set `top` so the bottom of the face is flush with the grid top.
-    // ensure the face is visible (no inline display:none) — we prefer visibility/opacity
     try { faceEl.style.removeProperty('display'); } catch (e) {}
     try { faceEl.style.removeProperty('visibility'); } catch (e) {}
-    // make visible immediately so first-click shows the face reliably;
-    // precise placement will be computed in the RAF callbacks below
     faceEl.classList.add('visible');
     resetFaceMood();
     try { faceEl.setAttribute('aria-hidden', 'false'); } catch (e) {}
@@ -540,26 +519,21 @@
     faceEl.style.left = '50%';
     faceEl.style.bottom = '';
     faceEl.style.top = '';
-      // clear any bottom offset and reset top/left so we compute exact pixels
       faceEl.style.removeProperty('bottom');
       faceEl.style.top = '';
       faceEl.style.left = '';
-    // First RAF: element is visible, measure natural size and container spacing
     requestAnimationFrame(() => {
       try {
           const anchorEl = faceEl.parentElement || document.querySelector('.board-wrap') || document.body;
           const gridRect = gridEl.getBoundingClientRect();
           const parentRect = anchorEl.getBoundingClientRect();
           const faceRect = faceEl.getBoundingClientRect();
-        // available space inside the board-wrap above the grid
-        const internalSpace = Math.max(0, gridRect.top - parentRect.top - 6); // small margin
-        const viewportSpaceAboveGrid = Math.max(0, gridRect.top - 8); // how far from viewport top to grid
-        // scale so the face will fit into the space above the grid and stay at least partly visible
+        const internalSpace = Math.max(0, gridRect.top - parentRect.top - 6);
+        const viewportSpaceAboveGrid = Math.max(0, gridRect.top - 8);
         const minScale = 0.6;
         let desiredScale = Math.min(internalSpace / faceRect.height, viewportSpaceAboveGrid / faceRect.height);
         let scale = Math.min(1, Math.max(minScale, desiredScale));
         faceEl.style.setProperty('--face-scale', String(scale));
-        // Second RAF: allow browser to apply scale and layout, then compute final precise position
         requestAnimationFrame(() => {
           try {
             positionFace();
@@ -572,7 +546,6 @@
           console.debug('showFace: added .visible, final bbox:', finalRect);
         });
       } catch (err) {
-        // fallback: just make it visible anchored to bottom
         faceEl.style.top = '';
         faceEl.style.bottom = '100%';
         faceEl.style.removeProperty('--face-scale');
@@ -598,7 +571,6 @@
     _clearBlinkTimer();
     _clearHideTimer();
     _hideTimer = setTimeout(() => {
-      // only hide via removing visibility if the face is still not visible — this avoids races
       try {
         if (faceEl && !faceEl.classList.contains('visible')) {
           try { faceEl.style.setProperty('visibility', 'hidden'); } catch (e) {}
@@ -617,14 +589,12 @@
     _blinkTimer = setTimeout(() => {
       if (_isLooking) return scheduleBlink();
       if (!leftPupil || !rightPupil || !leftPupilWrap || !rightPupilWrap) return scheduleBlink();
-      // add blink to wrapper so it scales without overriding pupil translate
       leftPupilWrap.classList.add('eye-blink');
       rightPupilWrap.classList.add('eye-blink');
       setTimeout(() => { leftPupilWrap.classList.remove('eye-blink'); rightPupilWrap.classList.remove('eye-blink'); scheduleBlink(); }, 360);
     }, delay);
   }
 
-  // small micro-twitch movements for pupils (makes the face feel alive)
   let _twitchTimer = null;
   function _clearTwitchTimer() { if (_twitchTimer) { clearTimeout(_twitchTimer); _twitchTimer = null; } }
   function scheduleTwitch() {
@@ -633,21 +603,16 @@
     const delay = 1260 + Math.floor(Math.random() * 1820);
     _twitchTimer = setTimeout(() => {
       if (!leftPupil || !rightPupil) return scheduleTwitch();
-      // do a tiny, intentional glance — not jitter: translate pupils smoothly to a small random offset, hold and return
       if (_isLooking) return scheduleTwitch();
-      const tx = (Math.random() * 8 - 4); // -4..4 px
-      const ty = (Math.random() * 6 - 3); // -3..3 px
-      // shorter duration for a quick glance
+      const tx = (Math.random() * 8 - 4);
+      const ty = (Math.random() * 6 - 3);
       const dur = 420;
-      // apply transform with transition
       leftPupil.style.transition = `transform ${Math.floor(dur * 0.6)}ms cubic-bezier(.22,.8,.28,1)`;
       rightPupil.style.transition = `transform ${Math.floor(dur * 0.6)}ms cubic-bezier(.22,.8,.28,1)`;
       leftPupil.style.transform = `translate(${tx}px, ${ty}px)`;
-      rightPupil.style.transform = `translate(${tx * 0.82}px, ${ty * 0.88}px)`; // slight asymmetry
-      // subtle smile response
+      rightPupil.style.transform = `translate(${tx * 0.82}px, ${ty * 0.88}px)`;
       if (smileEl) smileEl.style.transform = `translateY(${Math.min(3, Math.abs(ty))}px) scaleX(${1 + Math.abs(tx) / 140})`;
       setTimeout(() => {
-        // return
         leftPupil.style.transition = `transform ${Math.floor(dur * 0.5)}ms cubic-bezier(.22,.8,.28,1)`;
         rightPupil.style.transition = `transform ${Math.floor(dur * 0.5)}ms cubic-bezier(.22,.8,.28,1)`;
         leftPupil.style.transform = `translate(0px, 0px)`;
@@ -680,7 +645,6 @@
     if (smileEl && faceEl.classList.contains('visible')) {
       smileEl.classList.add('idle');
     }
-    // Reset pupil transitions to default
     if (leftPupil) leftPupil.style.transition = '';
     if (rightPupil) rightPupil.style.transition = '';
     lookCenter(180);
@@ -721,22 +685,18 @@
     const botFace = document.getElementById('botFace');
     if (!botFace) return;
 
-    // Clear previous transitions on pupils to ensure new animation works
     const pupils = botFace.querySelectorAll('.pupil-wrap circle');
     pupils.forEach(pupil => {
       pupil.style.transition = 'none';
     });
 
-    // Force a reflow to apply the transition removal
     void botFace.offsetWidth;
 
-    // Apply win class
     pokerSuspended = true;
     botFace.classList.remove('face-poker');
     botFace.classList.remove('face-bonk');
     botFace.classList.add('face-win');
 
-    // Reset after a fixed duration
     setTimeout(() => {
       resetFaceMood();
     }, 2000);
@@ -790,7 +750,6 @@
 
   // Reposition on resize so face stays attached when viewport or layout changes
   window.addEventListener('resize', () => { try { positionFace(); } catch (e) {} });
-  // --- end face helpers ---
 
   function resetFacePlacement() {
     if (!faceEl) return;
@@ -847,7 +806,6 @@
       } else {
         updatePokerFaceState();
       }
-      // Don't add idle smile after bonk - let the face stay neutral
       _bonkTimer = null;
     }, 560);
   }
@@ -890,13 +848,20 @@
     if (botActive) {      botSide = currentPlayer === 'X' ? 'O' : 'X';
       hintBtn.textContent = 'Bot: ON';
       hintBtn.classList.add('bot-on');
-      hintBtn.setAttribute('aria-pressed', 'true');      hintBtn.style.backgroundColor = cssVar('--accent-o', '#4fd1c5');
-      hintBtn.style.color = '#042';
-      setStatus(`Bot enabled (playing as ${botSide})`);
-      if (difficultySliderContainer) difficultySliderContainer.style.display = 'flex';
-      // show the face overlay
+      hintBtn.setAttribute('aria-pressed', 'true');      hintBtn.addEventListener('click', () => {
+    if (botActive) {
+      botActive = false;
+      hintBtn.textContent = 'Play Bot';
+      difficultySliderContainer.style.display = 'none';
+      hideFace();
+    } else {
+      botActive = true;
+      hintBtn.textContent = 'Stop Bot';
+      difficultySliderContainer.style.display = 'flex';
       showFace();
-      if (currentPlayer === botSide && !gameOver) setTimeout(performBotMove, 120);
+    }
+    setStatus(botActive ? 'Bot activated' : 'Bot deactivated');
+  });setTimeout(performBotMove, 120);
     } else {
       hintBtn.textContent = 'Play Bot';
       hintBtn.classList.remove('bot-on');
