@@ -9,12 +9,16 @@
   let moveId = 1;
   let gameOver = false;
   let lastWinningCells = [];
+  let botPlacementTotal = 0;
   let currentPlayer = 'X';
+  let pokerSuspended = false;
   const resetBtn = document.getElementById('resetBtn');
   const difficultySliderContainer = document.getElementById('botDifficultySliderContainer');
   const difficultySlider = document.getElementById('botDifficultySlider');
   const gridEl = document.getElementById('grid');
   const boardWrap = document.querySelector('.board-wrap');
+  const botArch = document.querySelector('.bot-arch');
+  const botArchInner = document.querySelector('.bot-arch-inner');
   const currentPlayerChip = document.getElementById('currentPlayerChip');
   const statusText = document.getElementById('statusText');
   const resultMsg = document.getElementById('resultMsg');
@@ -46,10 +50,13 @@
     moveId = 1;
     gameOver = false;
     lastWinningCells = [];
+    botPlacementTotal = 0;
+    pokerSuspended = false;
     renderGrid();
     markOldestForRemoval();
     setStatus('Game reset');
     resultMsg.style.display = 'none';
+    updatePokerFaceState();
   }
 
   function updateMeta() {
@@ -155,6 +162,13 @@
         resultMsg.textContent = `Player ${player} wins!`;
         resultMsg.style.display = 'inline-block';
         setStatus(`Player ${player} wins`, true);
+        if (botActive) {
+          if (player === botSide) {
+            triggerBotWinExpression();
+          } else {
+            triggerBotDefeatExpression();
+          }
+        }
         return;
       }
       currentPlayer = player === 'X' ? 'O' : 'X';
@@ -178,6 +192,7 @@
         try { lookAtCell(r, c, 240); } catch (e) { /* ignore when face not present */ }
         const thisMove = { r, c, id: moveId++ };
         queues[player].push(thisMove);
+        recordBotPlacementIfNeeded(player);
         finalizeAfterPlacement(r, c);
       });
     } else {
@@ -186,6 +201,7 @@
       try { lookAtCell(r, c, 240); } catch (e) { /* ignore when face not present */ }
       const thisMove = { r, c, id: moveId++ };
       queues[player].push(thisMove);
+      recordBotPlacementIfNeeded(player);
       finalizeAfterPlacement(r, c);
     }
   }
@@ -482,17 +498,23 @@
   let _lookTimer = null;
   let _blinkTimer = null;
   let _hideTimer = null;
+  let _bonkTimer = null;
+  let _moodTimer = null;
+  let _moodDropTimer = null;
+  let _moodRecoverTimer = null;
   let _isLooking = false;
   const PREFERS_REDUCED = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || false;
 
   function _clearLookTimer() { if (_lookTimer) { clearTimeout(_lookTimer); _lookTimer = null; } }
   function _clearBlinkTimer() { if (_blinkTimer) { clearTimeout(_blinkTimer); _blinkTimer = null; } }
   function _clearHideTimer() { if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; } }
+  function _clearBonkTimer() { if (_bonkTimer) { clearTimeout(_bonkTimer); _bonkTimer = null; } }
 
   function showFace() {
     if (!faceEl) { console.debug('showFace: faceEl is null'); return; }
     // cancel any pending hide so it doesn't override this show
     _clearHideTimer();
+    _clearBonkTimer();
     console.debug('showFace: called, faceEl=', faceEl);
     // Ensure face background matches the element we're anchoring to
     try {
@@ -512,6 +534,7 @@
     // make visible immediately so first-click shows the face reliably;
     // precise placement will be computed in the RAF callbacks below
     faceEl.classList.add('visible');
+    resetFaceMood();
     try { faceEl.setAttribute('aria-hidden', 'false'); } catch (e) {}
     if (boardWrap) boardWrap.classList.add('bot-curve');
     faceEl.style.left = '50%';
@@ -567,6 +590,8 @@
   function hideFace() {
     if (!faceEl) return;
     faceEl.classList.remove('visible');
+    faceEl.classList.remove('face-bonk');
+    resetFaceMood();
     try { faceEl.setAttribute('aria-hidden', 'true'); } catch (e) {}
     if (boardWrap) boardWrap.classList.remove('bot-curve');
     _clearLookTimer();
@@ -605,7 +630,7 @@
   function scheduleTwitch() {
     if (PREFERS_REDUCED || !faceEl) return;
     _clearTwitchTimer();
-    const delay = 1800 + Math.floor(Math.random() * 2600);
+    const delay = 1260 + Math.floor(Math.random() * 1820);
     _twitchTimer = setTimeout(() => {
       if (!leftPupil || !rightPupil) return scheduleTwitch();
       // do a tiny, intentional glance — not jitter: translate pupils smoothly to a small random offset, hold and return
@@ -631,6 +656,90 @@
         scheduleTwitch();
       }, dur);
     }, delay);
+  }
+
+  function _clearMoodTimer() {
+    if (_moodTimer) {
+      clearTimeout(_moodTimer);
+      _moodTimer = null;
+    }
+    if (_moodDropTimer) {
+      clearTimeout(_moodDropTimer);
+      _moodDropTimer = null;
+    }
+    if (_moodRecoverTimer) {
+      clearTimeout(_moodRecoverTimer);
+      _moodRecoverTimer = null;
+    }
+  }
+
+  function resetFaceMood() {
+    _clearMoodTimer();
+    if (!faceEl) return;
+    faceEl.classList.remove('face-defeat', 'face-defeat-drop', 'face-win', 'face-bonk');
+    if (smileEl && faceEl.classList.contains('visible')) {
+      smileEl.classList.add('idle');
+    }
+    // Reset pupil transitions to default
+    if (leftPupil) leftPupil.style.transition = '';
+    if (rightPupil) rightPupil.style.transition = '';
+    lookCenter(180);
+    updatePokerFaceState();
+  }
+
+  function triggerBotDefeatExpression() {
+    if (!faceEl) return;
+    _clearMoodTimer();
+    pokerSuspended = true;
+    faceEl.classList.add('face-defeat');
+    faceEl.classList.remove('face-defeat-drop');
+    faceEl.classList.remove('face-poker');
+    if (smileEl) smileEl.classList.remove('idle');
+    const DROP_START_DELAY = 150;
+    const DROP_ANIM_DURATION = 1960;
+    const EXPRESSION_RECOVER_DELAY = 1500;
+
+    _moodDropTimer = setTimeout(() => {
+      faceEl.classList.add('face-defeat-drop');
+      _moodDropTimer = null;
+      _moodRecoverTimer = setTimeout(() => {
+        faceEl.classList.remove('face-defeat');
+        if (smileEl) smileEl.classList.add('idle');
+        _moodRecoverTimer = null;
+      }, EXPRESSION_RECOVER_DELAY);
+      _moodTimer = setTimeout(() => {
+        _moodTimer = null;
+        resetFaceMood();
+        requestAnimationFrame(() => {
+          try { positionFace(); } catch (e) {}
+        });
+      }, DROP_ANIM_DURATION + 160);
+    }, DROP_START_DELAY);
+  }
+
+  function triggerBotWinExpression() {
+    const botFace = document.getElementById('botFace');
+    if (!botFace) return;
+
+    // Clear previous transitions on pupils to ensure new animation works
+    const pupils = botFace.querySelectorAll('.pupil-wrap circle');
+    pupils.forEach(pupil => {
+      pupil.style.transition = 'none';
+    });
+
+    // Force a reflow to apply the transition removal
+    void botFace.offsetWidth;
+
+    // Apply win class
+    pokerSuspended = true;
+    botFace.classList.remove('face-poker');
+    botFace.classList.remove('face-bonk');
+    botFace.classList.add('face-win');
+
+    // Reset after a fixed duration
+    setTimeout(() => {
+      resetFaceMood();
+    }, 2000);
   }
 
   function lookCenter(duration = 250) {
@@ -671,31 +780,11 @@
   function _elementVisible(el) { return !!el && el.style && getComputedStyle(el).display !== 'none' && getComputedStyle(el).opacity !== '0'; }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-  // positionFace: compute pixel-accurate top/left so the semicircle base (path #faceBg)
-  // aligns exactly with the top edge of the grid. Uses the path bounding box
-  // because the visible semicircle may not fill the SVG viewport exactly.
   function positionFace() {
-    if (!faceEl || !gridEl) return;
-    const anchorEl = faceEl.parentElement || document.querySelector('.board-wrap') || document.body;
-    const gridRect = gridEl.getBoundingClientRect();
-    const parentRect = anchorEl.getBoundingClientRect();
-    const faceRect = faceEl.getBoundingClientRect();
-    // try to find the explicit semicircle element inside the SVG
-    const faceBg = faceEl.querySelector('#faceBg') || faceEl.querySelector('path');
-    let baseOffsetFromFaceTop = faceRect.height; // fallback: assume bottom of face
-    if (faceBg && typeof faceBg.getBoundingClientRect === 'function') {
-      try {
-        const faceBgRect = faceBg.getBoundingClientRect();
-        baseOffsetFromFaceTop = faceBgRect.bottom - faceRect.top;
-      } catch (e) {
-        baseOffsetFromFaceTop = faceRect.height;
-      }
-    }
-    // compute top so the bottom of the semicircle (faceBg) aligns with the top of the grid
-    const topRel = Math.round((gridRect.top - parentRect.top) - baseOffsetFromFaceTop);
-    const leftCenter = Math.round((gridRect.left - parentRect.left) + gridRect.width / 2);
-    faceEl.style.top = `${topRel}px`;
-    faceEl.style.left = `${leftCenter}px`;
+    if (!faceEl) return;
+    faceEl.style.removeProperty('top');
+    faceEl.style.removeProperty('left');
+    faceEl.style.removeProperty('bottom');
     faceEl.style.transformOrigin = '50% 100%';
   }
 
@@ -705,6 +794,7 @@
 
   function resetFacePlacement() {
     if (!faceEl) return;
+    resetFaceMood();
     faceEl.style.removeProperty('--face-scale');
     faceEl.style.removeProperty('left');
     faceEl.style.removeProperty('top');
@@ -714,6 +804,62 @@
     });
     lookCenter(120);
   }
+
+  function recordBotPlacementIfNeeded(player) {
+    if (botActive && player === botSide) {
+      botPlacementTotal++;
+      pokerSuspended = false;
+    }
+    updatePokerFaceState();
+  }
+
+  function updatePokerFaceState() {
+    if (!faceEl) return;
+    if (faceEl.classList.contains('face-win') || faceEl.classList.contains('face-defeat')) {
+      faceEl.classList.remove('face-poker');
+      return;
+    }
+    if (pokerSuspended) {
+      faceEl.classList.remove('face-poker');
+      return;
+    }
+    const shouldPoker = botPlacementTotal > 10;
+    faceEl.classList.toggle('face-poker', shouldPoker);
+  }
+
+  function triggerFaceBonk() {
+    if (!faceEl || !faceEl.classList.contains('visible')) return;
+    if (faceEl.classList.contains('face-win') || faceEl.classList.contains('face-defeat')) return;
+    const previousSuspended = pokerSuspended;
+    const wasPoker = faceEl.classList.contains('face-poker');
+    pokerSuspended = true;
+    updatePokerFaceState();
+    faceEl.classList.remove('face-bonk');
+    void faceEl.offsetWidth;
+    faceEl.classList.add('face-bonk');
+    if (smileEl) smileEl.classList.remove('idle');
+    _clearBonkTimer();
+    _bonkTimer = setTimeout(() => {
+      faceEl.classList.remove('face-bonk');
+      pokerSuspended = previousSuspended;
+      if (wasPoker) {
+        faceEl.classList.add('face-poker');
+      } else {
+        updatePokerFaceState();
+      }
+      // Don't add idle smile after bonk - let the face stay neutral
+      _bonkTimer = null;
+    }, 560);
+  }
+
+  const bonkTargets = [botArch, botArchInner];
+  bonkTargets.forEach(target => {
+    if (!target) return;
+    target.addEventListener('pointerdown', (ev) => {
+      ev.stopPropagation();
+      triggerFaceBonk();
+    });
+  });
 
   function getHintFor(player) {
     return findWinningMove(player)

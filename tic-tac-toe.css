@@ -1,3 +1,22 @@
+#smile {
+  transition: opacity 130ms cubic-bezier(.25,1,.5,1), visibility 0s linear 0s, d 360ms cubic-bezier(.3,.85,.35,1);
+}
+
+.bot-face.face-poker #smile {
+  d: path('M92,142 Q100,142 108,142');
+  opacity: 1 !important;
+  visibility: visible !important;
+  stroke-width: 0.9;
+}
+
+.bot-face.face-poker #flatMouth {
+  opacity: 1;
+}
+
+.bot-face.face-poker #joyfulMouth,
+.bot-face.face-poker #joyfulMouthOpen {
+  opacity: 0 !important;
+}
 /* tic-tac-toe.css */
 :root {
   --bg: #0f1724;
@@ -213,7 +232,7 @@ label {
   transform: translate(-50%, -8px) scale(0.9);
   transform-origin: 50% 100%;
   transition: opacity 220ms cubic-bezier(.2,.9,.3,1), transform 220ms cubic-bezier(.2,.9,.3,1);
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 35;
 }
 .bot-arch::after {
@@ -233,7 +252,7 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .meta {
@@ -270,19 +289,191 @@ label {
   pointer-events: none;
   z-index: 40;
   opacity: 0;
-  transform: translate(calc(-46% + 2px), calc(-62% - 2px));
+  transform: translate(calc(-46% - 3px), calc(-58% + 2px));
   transition: opacity 180ms ease;
+  transform-origin: 50% 66%;
 }
 .board-wrap.bot-curve .bot-face {
   opacity: 1;
   visibility: visible;
 }
 
+
+.bot-arch .bot-face svg {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 66%;
+}
+
+.bot-face.face-win {
+  animation: faceWinExpression 1680ms cubic-bezier(.34,.86,.28,1.08) 0s both;
+}
+
+.mouth-open {
+  opacity: 0;
+  transform: scale(0.25);
+  transform-origin: 50% 68%;
+  transition: opacity 300ms cubic-bezier(.32,.9,.4,1.04), transform 300ms cubic-bezier(.32,.9,.4,1.04);
+}
+
+.eye-line,
+#flatMouth {
+  opacity: 0;
+  transition: opacity 160ms ease;
+  shape-rendering: crispEdges;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.bot-face.face-defeat .eye-line,
+.bot-face.face-defeat #flatMouth {
+  opacity: 1;
+  stroke-width: 1;
+}
+
+.bot-face.face-defeat #joyfulMouth,
+.bot-face.face-defeat #joyfulMouthOpen {
+  opacity: 0 !important;
+}
+
+.bot-face.face-defeat .pupil-wrap,
+.bot-face.face-defeat #smile {
+  opacity: 0 !important;
+}
+
+.bot-face.face-defeat #smile {
+  animation: none !important;
+}
+
+.bot-face.face-bonk {
+  animation: faceBonkWiggle 560ms cubic-bezier(.32,.8,.38,1.2) 0s both;
+}
+
+.bot-face.face-bonk #smile,
+.bot-face.face-bonk #flatMouth,
+.bot-face.face-bonk #joyfulMouth,
+.bot-face.face-bonk #joyfulMouthOpen,
+.bot-face.face-bonk .mouth-open,
+.bot-face.face-bonk .eye-line {
+  opacity: 0;
+}
+
+.bot-face.face-defeat-drop svg {
+  animation: defeatHeadStory 1960ms ease-in-out;
+}
+
+
+.bot-face.face-win-phase1 #smile {
+  opacity: 0;
+}
+
+.bot-face.face-win-phase1 .mouth-open {
+  opacity: 1;
+  transform: scale(0.68);
+}
+
+.bot-face.face-win-phase1 .pupil-wrap circle {
+  transform: scale(1);
+}
+
+
+
+.bot-face.face-win-phase2 .mouth-open {
+  opacity: 0;
+  transform: scale(0.25);
+}
+
+#joyfulMouth {
+  opacity: 0;
+  transition: opacity 90ms cubic-bezier(.4,0,.6,1), d 350ms cubic-bezier(.25,1,.5,1);
+  /* Target shape when not in win state */
+  d: path('M88,140 Q100,145 112,140');
+}
+
+#joyfulMouthOpen {
+  opacity: 0;
+  transition: opacity 280ms cubic-bezier(.25,.9,.35,1.1);
+}
+
+.bot-face.face-win #joyfulMouth {
+  opacity: 1; /* Show the semi-circle */
+  /* Start with full semi-circle, animate to match smile curve */
+  d: path('M82,140 A 18 18 0 0 0 118,140');
+  stroke-width: 2;
+  transition: opacity 160ms cubic-bezier(.25,1,.5,1), d 350ms cubic-bezier(.25,1,.5,1);
+  animation: winMouthFade 1250ms cubic-bezier(.42,.0,.2,1) 0s both;
+}
+
+.bot-face.face-win #joyfulMouthOpen {
+  opacity: 0; /* Hide the other semi-circle */
+}
+
+.bot-face.face-win #smile {
+  opacity: 0;
+  animation: winSmileReturn 1250ms cubic-bezier(.42,.0,.2,1) 0s both;
+}
+
+#smile {
+  transition: opacity 130ms cubic-bezier(.25,1,.5,1), visibility 0s linear 0s;
+}
+
+.bot-face.face-win #flatMouth {
+  opacity: 1; /* Show flat mouth with semi-circle */
+  stroke-width: 1; /* Make the flat mouth even thinner */
+  /* Animate from flat to curved like the smile */
+  d: path('M84,142 Q100,148 116,142');
+  transition: d 350ms cubic-bezier(.25,1,.5,1);
+  animation: winFlatFade 1250ms cubic-bezier(.42,.0,.2,1) 0s both;
+}
+
+.bot-face.face-win .pupil-wrap circle {
+  r: 6 !important;
+  transition: transform 220ms cubic-bezier(.2,.9,.3,1), r 420ms cubic-bezier(.3,.85,.35,1) !important;
+}
+
+.bot-face.face-win #rightPupilWrap {
+  animation: winWink 640ms cubic-bezier(.55,.02,.45,1) 1280ms both;
+}
+
+.bot-face.face-win #rightEyeLine {
+  animation: winWinkLid 640ms cubic-bezier(.55,.02,.45,1) 1280ms both;
+}
+
+.bot-face.face-win #leftPupilWrap,
+.bot-face.face-win #leftEyeLine {
+  animation: none !important;
+}
+
+.bot-face:not(.face-win) .pupil-wrap circle {
+  r: 4.2 !important;
+  transition: transform 220ms cubic-bezier(.2,.9,.3,1), r 420ms cubic-bezier(.3,.85,.35,1) !important;
+}
+
+@keyframes defeatHeadStory {
+  /* Phase 1: quick inhale (slight lift) */
+  0%   { transform: translate(0, 0); }
+  12%  { transform: translate(0, -3px); }
+  18%  { transform: translate(0, -2px); }
+  24%  { transform: translate(0, 0); }
+  /* Phase 2: exhale drop straight down */
+  38%  { transform: translate(0, 8px); }
+  46%  { transform: translate(0, 9px); }
+  /* Phase 3: still low, sway L-R-L */
+  58%  { transform: translate(-5px, 9px); }
+  70%  { transform: translate(5px, 8px); }
+  82%  { transform: translate(-3px, 7px); }
+  /* Phase 4: return upwards to neutral */
+  94%  { transform: translate(2px, 3px); }
+  100% { transform: translate(0, 0); }
+}
+
 /* Pupils movement controlled via transform on the <circle> elements */
 /* pupils are small white dots */
 #leftPupil, #rightPupil {
   transform-origin: center;
-  transition: transform 220ms cubic-bezier(.2,.9,.3,1);
+  transition: transform 220ms cubic-bezier(.2,.9,.3,1), r 350ms cubic-bezier(.25,1,.5,1);
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.28));
 }
 
@@ -301,6 +492,64 @@ label {
 }
 .pupil-wrap { transform-box: fill-box; transform-origin: center; }
 .eye-blink { transform-origin: center; animation: face-blink 320ms ease-in-out; }
+
+/* face zoom animation */
+@keyframes faceWinExpression {
+  0%   { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1)    rotate(0deg); }
+  18%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1.08) rotate(7deg); }
+  38%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1.13) rotate(9deg); }
+  56%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1.05) rotate(-6deg); }
+  68%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1.02) rotate(0deg); }
+  82%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1.02) rotate(0deg); }
+  92%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1.09) rotate(0deg); }
+  100% { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) scale(1)    rotate(0deg); }
+}
+
+@keyframes winMouthFade {
+  0%   { opacity: 1; }
+  70%  { opacity: 1; }
+  85%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes winSmileReturn {
+  0%   { opacity: 0; }
+  65%  { opacity: 0; }
+  82%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes faceBonkWiggle {
+  0%   { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(0deg) scale(1); }
+  12%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(-9deg) scale(0.96); }
+  28%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(7deg) scale(1.04); }
+  44%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(-4deg) scale(0.98); }
+  60%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(3deg) scale(1.02); }
+  76%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(-1deg) scale(0.99); }
+  88%  { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(0deg) scale(1.01); }
+  100% { transform: translate(calc(-46% - 3px), calc(-58% + 2px)) rotate(0deg) scale(1); }
+}
+
+@keyframes winWink {
+  0%   { transform: scaleY(1); }
+  25%  { transform: scaleY(0.15); }
+  45%  { transform: scaleY(1); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes winWinkLid {
+  0%   { transform: translateY(0); opacity: 0; }
+  20%  { transform: translateY(2px); opacity: 1; }
+  45%  { transform: translateY(0); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+@keyframes winFlatFade {
+  0%   { opacity: 1; }
+  70%  { opacity: 1; }
+  85%  { opacity: 0; }
+  100% { opacity: 0; }
+}
 
 /* subtle idle smile pulse (very small) */
 @keyframes smile-pulse {
