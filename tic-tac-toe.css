@@ -289,7 +289,7 @@ label {
   pointer-events: none;
   z-index: 40;
   opacity: 0;
-  transform: translate(calc(-46% - 3px), calc(-58% + 2px));
+  transform: translate(calc(-46% - 2px), calc(-58% + 0px));
   transition: opacity 180ms ease;
   transform-origin: 50% 66%;
 }
@@ -412,11 +412,7 @@ label {
 
 .bot-face.face-win #smile {
   opacity: 0;
-  animation: winSmileReturn 1250ms cubic-bezier(.42,.0,.2,1) 0s both;
-}
-
-#smile {
-  transition: opacity 130ms cubic-bezier(.25,1,.5,1), visibility 0s linear 0s;
+  animation: winSmileReturn 1250ms cubic-bezier(.42,.0,.2,1) 0s both !important;
 }
 
 .bot-face.face-win #flatMouth {
@@ -455,18 +451,18 @@ label {
 @keyframes defeatHeadStory {
 
   0%   { transform: translate(0, 0); }
-  12%  { transform: translate(0, -3px); }
-  18%  { transform: translate(0, -2px); }
+  12%  { transform: translate(0, -2px); }
+  18%  { transform: translate(0, -1px); }
   24%  { transform: translate(0, 0); }
 
-  38%  { transform: translate(0, 8px); }
-  46%  { transform: translate(0, 9px); }
+  38%  { transform: translate(0, 4px); }
+  46%  { transform: translate(0, 5px); }
 
-  58%  { transform: translate(-5px, 9px); }
-  70%  { transform: translate(5px, 8px); }
-  82%  { transform: translate(-3px, 7px); }
+  58%  { transform: translate(-2px, 5px); }
+  70%  { transform: translate(2px, 4px); }
+  82%  { transform: translate(-1px, 3px); }
 
-  94%  { transform: translate(2px, 3px); }
+  94%  { transform: translate(1px, 1px); }
   100% { transform: translate(0, 0); }
 }
 
